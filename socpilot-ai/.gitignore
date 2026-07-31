@@ -1,0 +1,8 @@
+
+# Large local datasets
+datasets/
+cicids2017.zip
+
+# Local model and dataset caches
+.cache/
+outputs/
