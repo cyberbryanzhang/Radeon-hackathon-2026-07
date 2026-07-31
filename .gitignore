@@ -1,0 +1,8 @@
+.venv/
+.ipynb_checkpoints/
+*.ipynb
+__pycache__/
+*.py[cod]
+.env
+.DS_Store
+.amd-oneclick-source
