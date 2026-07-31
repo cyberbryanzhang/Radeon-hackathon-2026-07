@@ -1,89 +1,481 @@
-# Radeon-hackathon-2026-07
+# SOCPilot AI
 
-## how to apply and use AMD Radeon GPU
-see [README](https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07/blob/main/Radeon-Cloud-User%20Guide/README.md)
+> A local Security Operations Center (SOC) assistant powered by **Meta Llama 3.1** and accelerated with **AMD ROCm**.
 
-## Track 3 starter demo: robot simulation on AMD Radeon GPU
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 
-New to robotics, or want to learn how to run robot simulation on AMD GPUs? This reference demo is a quick, hands-on starting point for Track 3 participants — an end-to-end pipeline where a Franka Panda arm picks fruit off a table and places it in a bowl, built on the **Genesis** physics engine and **LeRobot**, running on an AMD Radeon (ROCm) GPU.
+![AMD ROCm](https://img.shields.io/badge/AMD-ROCm-ED1C24)
 
-▶️ **Demo repo & videos:** https://github.com/wangxunx/franka_fruit_pick_demo
+![Llama 3.1](https://img.shields.io/badge/Model-Llama%203.1%208B-4CAF50)
 
-What you'll learn:
-- Set up a robot simulation environment on an AMD Radeon GPU (ROCm), using the prebuilt ROCm PyTorch wheels
-- Build a scene and run physics simulation with **Genesis**
-- Record data, apply domain randomization, and train a visuomotor policy with **LeRobot**
-- Go end-to-end — from a scripted pick-and-place to a trained, closed-loop policy, with evaluation videos
+![License](https://img.shields.io/badge/License-Educational-lightgrey)
 
-> Note: this is a learning reference to show how to run simulation and training on an AMD GPU with `genesis-world` + `lerobot`; the trained model's success rate is not guaranteed.
+SOCPilot AI is a prototype Security Operations Center (SOC) assistant developed for the **AMD Radeon Hackathon 2026**.
 
-## when you submit
-**pls fork this repo and open a pull request including the stuff that is mentioned in Rules&conditions of luma page. the title of pull request should be like "Track x, Team name, your application name"**
+The project demonstrates how a locally deployed Large Language Model (LLM) can assist security analysts by transforming cybersecurity events into structured incident reports. The entire inference pipeline runs locally on an AMD Radeon GPU through ROCm without relying on external AI services.
 
-> [!IMPORTANT]
-> Team name was an optional field on the Luma registration form. If you did not fill in a team name when you registered, please use your own name instead, so the title of the pull request should be like **"Track x, Your name, your application name"**.
+---
 
-> [!NOTE]
-> All submission materials, project descriptions, and Pull Requests should be submitted in English.
+# Table of Contents
 
-## Submission Requirements
+- [Overview](#overview)
 
-### Track 1: Development of Multimodal Content Creation Tools
+- [Architecture](#architecture)
 
-1. **Project Profile Document (PDF)**
-   - Project background
-   - Target users & application scenarios
-   - System architecture
-   - Model & algorithm introduction
-   - Adaptation description for AMD Radeon GPU / ROCm
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (clarity, stability and diversity of outputs)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster (highlight creative scenarios, practical value of the tool)
+- [Project Workflow](#project-workflow)
 
-### Track 2: Development & Local Deployment of Private AI Agents
+- [Features](#features)
 
-1. **Project Specification Document**
-   - Application scenarios
-   - Agent architecture diagram
-   - Introduction to core capabilities
-   - Model introduction & local deployment plan
-   - Optimization description for inference speed on AMD Radeon GPU
-2. **Project Source Code**
-   - Complete source code repository
-   - README file including environment configuration, startup guide and dependency list
-3. **Demo Video**
-   - Recommended duration: 3–5 minutes
-   - Demonstrate the actual operation process
-   - The actual execution performance on an AMD Radeon GPU, from command line/GUI to the final result (fluidity and functional completeness)
-4. **Supplementary Materials (Choose One)**
-   - PPT / Poster
+- [Repository Structure](#repository-structure)
 
-### Track 3: Physical AI Challenge – Robotics Simulation and Application Design based on AMD Radeon GPUs and ROCm
+- [Requirements](#requirements)
 
-1. **Technical Report** (should include, but is not limited to):
-   - Definition and description of the target application
-   - Overall system architecture and solution design
-   - Description of the datasets used for training and/or evaluation
-   - Explanation of how AMD Radeon GPUs are utilized during training, inference, and other relevant stages
-   - Description of the innovations, key technical contributions, and important aspects of the project
-   - Description of the final deliverables and output forms of the project
-   - Any additional information that participants believe highlights the strengths or unique aspects of their work
-   - Introduction of team members and their respective contributions
-2. **Project Source Code**
-   - Dedicated source code repositories
-   - A Docker image containing the complete source code and all required components for running the project would be preferable
-3. **Reproducibility Instruction README** — a detailed README document containing:
-   - Environment setup instructions
-   - Execution and usage instructions
-   - Dependency specifications
-   - Step-by-step reproduction procedures
-   - Following the provided instructions should allow evaluators to reproduce the submitted results
-4. **Demonstration Video** (Recommended Length 3~5 minutes)
-   - The video should demonstrate the complete workflow of the project, including command-line and/or GUI operations, execution procedures, and results
-5. **Supplementary materials** in other formats may be submitted to demonstrate the value of the proposed technical solution.
+- [Installation](#installation)
+
+- [Running the Project](#running-the-project)
+
+- [Performance](#performance)
+
+- [Example Output](#example-output)
+
+- [Dataset](#dataset)
+
+- [Model](#model)
+
+- [AMD GPU Optimization](#amd-gpu-optimization)
+
+- [Future Work](#future-work)
+
+- [Acknowledgements](#acknowledgements)
+
+- [License](#license)
+
+---
+
+# Overview
+
+Security analysts spend a significant amount of time investigating alerts generated by Security Information and Event Management (SIEM) platforms. Typical analysis includes:
+
+- Reviewing network events
+
+- Identifying attack behavior
+
+- Extracting Indicators of Compromise (IOCs)
+
+- Mapping attacks to the MITRE ATT&CK framework
+
+- Assessing severity and confidence
+
+- Providing response recommendations
+
+SOCPilot AI streamlines this workflow by combining lightweight Python preprocessing with a locally deployed Meta Llama 3.1 model running on AMD Radeon GPUs.
+
+The current implementation focuses on network intrusion detection using the CICIDS2017 dataset and produces structured JSON reports suitable for SOC analysis and automation workflows.
+
+---
+
+# Architecture
+
+```mermaid
+
+flowchart LR
+
+A[Cybersecurity Event]
+
+--> B[Feature Extraction]
+
+--> C[Prompt Builder]
+
+--> D[Llama 3.1 8B<br/>Local ROCm Inference]
+
+--> E[JSON Validation]
+
+--> F[Structured Incident Report]
+
+```
+
+---
+
+# Project Workflow
+
+```text
+
+CICIDS2017 Dataset
+
+        │
+
+        ▼
+
+summarize_dataset.py
+
+        │
+
+        ▼
+
+Feature Extraction
+
+        │
+
+        ▼
+
+Prompt Construction
+
+        │
+
+        ▼
+
+Meta Llama 3.1
+
+(Local ROCm Inference)
+
+        │
+
+        ▼
+
+Structured JSON Report
+
+        │
+
+        ▼
+
+SOC Analyst
+
+```
+
+---
+
+# Features
+
+- Local inference using Meta Llama 3.1 8B
+
+- AMD ROCm GPU acceleration
+
+- Lightweight Python preprocessing pipeline
+
+- Structured JSON incident reports
+
+- MITRE ATT&CK technique mapping
+
+- IOC extraction
+
+- Confidence scoring
+
+- Security recommendations
+
+- CICIDS2017 dataset integration
+
+- Fully local execution without cloud APIs
+
+---
+
+# Repository Structure
+
+```text
+
+socpilot-ai/
+
+├── app/
+
+│   ├── test_llm.py
+
+│   ├── summarize_dataset.py
+
+│   └── ...
+
+│
+
+├── datasets/
+
+│   └── cicids2017/
+
+│
+
+├── outputs/
+
+│
+
+├── README.md
+
+│
+
+└── requirements.txt
+
+```
+
+---
+
+# Requirements
+
+- Python 3.10+
+
+- PyTorch
+
+- Hugging Face Transformers
+
+- pandas
+
+- numpy
+
+- accelerate
+
+- AMD ROCm
+
+---
+
+# Installation
+
+Clone the repository.
+
+```bash
+
+git clone https://github.com/cyberbryanzhang/Radeon-hackathon-2026-07.git
+
+cd Radeon-hackathon-2026-07/socpilot-ai
+
+```
+
+Create a virtual environment (recommended).
+
+```bash
+
+python -m venv .venv
+
+source .venv/bin/activate
+
+```
+
+Install dependencies.
+
+```bash
+
+pip install -r requirements.txt
+
+```
+
+---
+
+# Running the Project
+
+## Test Local LLM Inference
+
+```bash
+
+python app/test_llm.py
+
+```
+
+Expected output:
+
+- Model loaded successfully
+
+- AMD GPU detected
+
+- Structured JSON response generated
+
+- Output schema validation passed
+
+---
+
+## Generate Dataset Summary
+
+```bash
+
+python app/summarize_dataset.py
+
+```
+
+Expected output:
+
+- Dataset statistics
+
+- Attack label
+
+- Feature summary
+
+- Prompt-ready JSON
+
+---
+
+# Performance
+
+| Item | Configuration |
+
+|------|---------------|
+
+| Language Model | Meta Llama 3.1 8B Instruct |
+
+| Inference | Local |
+
+| Hardware | AMD Radeon GPU |
+
+| Runtime | ROCm |
+
+| Precision | FP16 |
+
+| Output | Structured JSON |
+
+---
+
+# Example Output
+
+Example analysis generated from a PortScan event.
+
+```json
+
+{
+
+  "severity": "High",
+
+  "confidence": 90,
+
+  "attack_type": "PortScan",
+
+  "summary": "Possible network service scanning activity detected.",
+
+  "mitre_attack": [
+
+    {
+
+      "technique_id": "T1046",
+
+      "technique_name": "Network Service Scanning"
+
+    }
+
+  ],
+
+  "iocs": [
+
+    {
+
+      "type": "IP",
+
+      "value": "203.0.113.45"
+
+    }
+
+  ],
+
+  "recommendations": [
+
+    "Investigate the source host.",
+
+    "Review firewall policies.",
+
+    "Monitor for repeated scanning activity."
+
+  ]
+
+}
+
+```
+
+---
+
+# Dataset
+
+This project currently uses the **CICIDS2017** intrusion detection dataset.
+
+The preprocessing pipeline extracts statistical information from network traffic before generating a concise summary for the language model.
+
+Current demonstration scenarios include:
+
+- PortScan
+
+- Benign Traffic
+
+The architecture is designed to support additional intrusion detection datasets in future work.
+
+---
+
+# Model
+
+## Language Model
+
+- Meta Llama 3.1 8B Instruct
+
+## Inference Framework
+
+- Hugging Face Transformers
+
+- PyTorch
+
+## Deployment
+
+- Local inference
+
+- FP16 precision
+
+- AMD ROCm acceleration
+
+---
+
+# AMD GPU Optimization
+
+The project is optimized for local execution on AMD Radeon GPUs.
+
+Current optimizations include:
+
+- ROCm-enabled PyTorch
+
+- FP16 inference
+
+- Automatic GPU device mapping
+
+- Local model execution
+
+- Reduced GPU memory usage through half precision
+
+The entire inference pipeline is designed to perform all inference locally without sending security data to external cloud services.
+
+---
+
+# Future Work
+
+Planned improvements include:
+
+- Support additional intrusion detection datasets
+
+- Real-time log ingestion
+
+- Integration with Security Onion
+
+- Integration with Splunk
+
+- Interactive web dashboard
+
+- Retrieval-Augmented Generation (RAG)
+
+- Threat intelligence enrichment
+
+- Multi-agent SOC workflows
+
+- Automated incident report generation
+
+- REST API deployment
+
+---
+
+# Acknowledgements
+
+This project was built using the following open-source technologies:
+
+- AMD ROCm
+
+- Meta Llama 3.1
+
+- Hugging Face Transformers
+
+- PyTorch
+
+- CICIDS2017
+
+- University of Arizona
+
+Special thanks to the AMD Radeon Hackathon organizers for providing the GPU development environment.
+
+---
+
+# License
+
+This repository was developed for the **AMD Radeon Hackathon 2026** and is released for educational and research purposes.
