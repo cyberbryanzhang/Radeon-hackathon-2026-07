@@ -1,0 +1,6 @@
+gradio>=6.0
+transformers>=4.40
+accelerate>=1.0
+pandas>=2.0
+numpy>=1.26
+sentencepiece>=0.2
