@@ -1,19 +1,71 @@
-
-# Large local datasets
-datasets/
-cicids2017.zip
-
-# Local model and dataset caches
-.cache/
-outputs/
-
-# Python cache
+# ==========================
+# Python
+# ==========================
 __pycache__/
 *.py[cod]
+*$py.class
 
-# Vim temporary files
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ==========================
+# macOS
+# ==========================
+.DS_Store
+
+# ==========================
+# IDE
+# ==========================
+.vscode/
+.idea/
+
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# Local Models (if any)
+# ==========================
+models/
+
+# ==========================
+# Dataset
+# ==========================
+cicids2017.zip
+datasets/cicids2017/
+datasets/**/*.csv
+datasets/**/*.pcap
+datasets/**/*.pcapng
+datasets/**/*.zip
+
+!datasets/.gitkeep
+
+# ==========================
+# Generated Outputs
+# ==========================
+outputs/*.json
+outputs/*.md
+outputs/*.txt
+outputs/*.csv
+
+!outputs/.gitkeep
+
+# ==========================
+# Documentation
+# ==========================
+!docs/.gitkeep
+
+# ==========================
+# Temporary files
+# ==========================
+*.tmp
+*.bak
 *.swp
-*.swo
-
-# Gradio local state
-.gradio/
