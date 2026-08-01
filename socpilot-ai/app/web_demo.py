@@ -11,31 +11,47 @@ import gradio as gr
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
+
 OUTPUT_JSON = OUTPUT_DIR / "web_incident_report.json"
 OUTPUT_MARKDOWN = OUTPUT_DIR / "web_incident_report.md"
 OUTPUT_PERFORMANCE = OUTPUT_DIR / "web_incident_report_performance.json"
 
 
-def analyze(summary_file: Any):
-    if summary_file is None:
+def load_json(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+
+    if not isinstance(data, dict):
+        raise ValueError("JSON input must contain one object.")
+
+    return data
+
+
+def analyze(summary_file: str | None):
+    if not summary_file:
         return (
             "Please upload a network-flow summary JSON file.",
+            "Unknown",
+            "Unknown",
+            "Unknown",
             {},
             {},
-            None,
+            "",
             None,
         )
 
     summary_path = Path(summary_file)
 
     try:
-        json.loads(summary_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        load_json(summary_path)
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         return (
-            f"Invalid JSON file: {error}",
+            f"Invalid input: {error}",
+            "Unknown",
+            "Unknown",
+            "Unknown",
             {},
             {},
-            None,
+            "",
             None,
         )
 
@@ -59,43 +75,56 @@ def analyze(summary_file: Any):
         )
     except subprocess.CalledProcessError as error:
         details = error.stderr.strip() or error.stdout.strip()
+
         return (
             f"Analysis failed:\n\n```text\n{details}\n```",
+            "Failed",
+            "Unknown",
+            "Unknown",
             {},
             {},
-            None,
+            "",
             None,
         )
 
     try:
-        report = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
-        performance = json.loads(
-            OUTPUT_PERFORMANCE.read_text(encoding="utf-8")
-        )
+        report = load_json(OUTPUT_JSON)
+        performance = load_json(OUTPUT_PERFORMANCE)
         markdown = OUTPUT_MARKDOWN.read_text(encoding="utf-8")
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         return (
-            f"Analysis completed, but generated files could not be read: {error}",
+            f"Could not read generated output: {error}",
+            "Failed",
+            "Unknown",
+            "Unknown",
             {},
             {},
-            None,
+            "",
             None,
         )
 
-    terminal_summary = result.stdout.strip()
+    severity = str(report.get("severity", "Unknown"))
+    confidence = report.get("confidence", "Unknown")
+    attack_type = str(report.get("attack_type", "Unknown"))
+
+    confidence_text = (
+        f"{confidence}%"
+        if confidence != "Unknown"
+        else "Unknown"
+    )
 
     status = (
         "## Analysis complete\n\n"
-        f"**Severity:** {report.get('severity', 'Unknown')}  \n"
-        f"**Confidence:** {report.get('confidence', 'Unknown')}%  \n"
-        f"**Attack type:** {report.get('attack_type', 'Unknown')}\n\n"
-        "<details><summary>Terminal output</summary>\n\n"
-        f"```text\n{terminal_summary}\n```\n"
-        "</details>"
+        f"**Severity:** {severity}  \n"
+        f"**Confidence:** {confidence_text}  \n"
+        f"**Attack type:** {attack_type}"
     )
 
     return (
         status,
+        severity,
+        confidence_text,
+        attack_type,
         report,
         performance,
         markdown,
@@ -103,46 +132,98 @@ def analyze(summary_file: Any):
     )
 
 
-with gr.Blocks(title="SOCPilot AI") as demo:
+CSS = """
+.gradio-container {
+    max-width: 1200px !important;
+    margin: auto !important;
+}
+
+#header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+footer {
+    display: none !important;
+}
+"""
+
+
+with gr.Blocks(
+    title="SOCPilot AI",
+) as demo:
     gr.Markdown(
         """
 # SOCPilot AI
 
-Local Security Operations Center incident analysis using  
-**Meta Llama 3.1 8B** and **AMD ROCm**.
+### Local SOC Assistant powered by Meta Llama 3.1 and AMD ROCm
 
-Upload a flow-summary JSON file to generate a structured incident report,
-MITRE ATT&CK mapping, recommendations, and performance measurements.
-"""
+Upload a summarized network-flow JSON file to generate a structured incident
+report, MITRE ATT&CK mapping, recommendations, and ROCm performance metrics.
+""",
+        elem_id="header",
     )
 
     with gr.Row():
-        summary_input = gr.File(
-            label="Network-flow summary JSON",
-            file_types=[".json"],
-            type="filepath",
-        )
+        with gr.Column(scale=1):
+            summary_input = gr.File(
+                label="Network-flow summary JSON",
+                file_types=[".json"],
+                type="filepath",
+            )
 
-        analyze_button = gr.Button(
-            "Analyze locally",
-            variant="primary",
-        )
+            analyze_button = gr.Button(
+                "Run Local Analysis",
+                variant="primary",
+            )
 
-    status_output = gr.Markdown()
+        with gr.Column(scale=2):
+            status_output = gr.Markdown(
+                "Upload a JSON file to begin."
+            )
 
-    with gr.Tab("Incident Report"):
-        report_output = gr.JSON(label="Structured JSON report")
-        markdown_output = gr.Markdown(label="Readable incident report")
-        download_output = gr.File(label="Download Markdown report")
+            with gr.Row():
+                severity_output = gr.Textbox(
+                    label="Severity",
+                    value="Unknown",
+                    interactive=False,
+                )
 
-    with gr.Tab("Performance"):
-        performance_output = gr.JSON(label="ROCm inference metrics")
+                confidence_output = gr.Textbox(
+                    label="Confidence",
+                    value="Unknown",
+                    interactive=False,
+                )
+
+                attack_output = gr.Textbox(
+                    label="Attack Type",
+                    value="Unknown",
+                    interactive=False,
+                )
+
+    with gr.Tabs():
+        with gr.Tab("Incident Report"):
+            markdown_output = gr.Markdown()
+
+        with gr.Tab("Structured JSON"):
+            report_output = gr.JSON()
+
+        with gr.Tab("Performance"):
+            performance_output = gr.JSON()
+
+        with gr.Tab("Download"):
+            download_output = gr.File(
+                label="Download Markdown Report"
+            )
 
     analyze_button.click(
         fn=analyze,
         inputs=summary_input,
         outputs=[
             status_output,
+            severity_output,
+            confidence_output,
+            attack_output,
             report_output,
             performance_output,
             markdown_output,
@@ -152,9 +233,17 @@ MITRE ATT&CK mapping, recommendations, and performance measurements.
 
 
 if __name__ == "__main__":
+
     demo.queue().launch(
+
         server_name="0.0.0.0",
+
         server_port=7860,
+
         share=False,
+
         show_error=True,
+
+        css=CSS,
+
     )
