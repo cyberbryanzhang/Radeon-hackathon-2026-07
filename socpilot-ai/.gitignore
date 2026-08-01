@@ -6,3 +6,14 @@ cicids2017.zip
 # Local model and dataset caches
 .cache/
 outputs/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Vim temporary files
+*.swp
+*.swo
+
+# Gradio local state
+.gradio/
